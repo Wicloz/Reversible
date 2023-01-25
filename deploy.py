@@ -8,13 +8,17 @@ from sys import argv
 from package import Package
 
 if __name__ == '__main__':
+    # Process file name
+    _, mode = argv[0].split('-')
+    assert mode in {'custom', 'changed', 'all'}
+
     # Setup git repo
     repo = Repo()
     repo.git.reset()
 
     # Determine packages to deploy
     packages = listdir()
-    if argv[1] == 'custom':
+    if mode == 'custom':
         packages = input('Enter Package Names: ').split(' ')
 
     # Iterate packages with changes
@@ -23,7 +27,7 @@ if __name__ == '__main__':
             repo.git.add(package)
 
             # Build and deploy package
-            if argv[1] in ('custom', 'all') or repo.index.diff(repo.head.commit):
+            if mode in {'custom', 'all'} or repo.index.diff(repo.head.commit):
                 input(f'Press ⏎ to Deploy "{package}" ...')
                 pkg = Package(package)
                 pkg.build()
