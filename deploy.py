@@ -25,7 +25,7 @@ if __name__ == '__main__':
         if not isdir(category):
             continue
 
-        # Determine actual packages to deploy
+        # Select all packages here otherwise
         if mode != 'custom':
             packages = listdir(category)
 
