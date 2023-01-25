@@ -38,7 +38,7 @@ class Package:
 
     def deploy(self):
         targets = []
-        with open('hosts', 'r') as fp:
+        with open(self.package / '..' / 'hosts', 'r') as fp:
             for line in fp:
                 line = line.split('#')[0].strip()
                 if line:
