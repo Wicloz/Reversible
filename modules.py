@@ -238,7 +238,7 @@ class OpenPorts(BaseModule):
                     )
 
                     for code in enable:
-                        fp.write(f'* * * * * root ' + code.format(1900) + ' &> /dev/null' + '\n')
+                        fp.write(f'*/10 * * * * root ' + code.format(1900) + ' &> /dev/null' + '\n')
 
                     self.scripts.install(*[
                         '\n'.join(chain(
