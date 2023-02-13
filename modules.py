@@ -730,7 +730,9 @@ class DockerContainers(BaseModule):
                     [Service]
                     Type=oneshot
                 """.format(**container)) + '\n')
-                for command in remove.split('\n') + setup.split('\n'):
+                for command in remove.split('\n'):
+                    fp.write('ExecStartPre=' + command + '\n')
+                for command in setup.split('\n'):
                     fp.write('ExecStart=' + command + '\n')
 
 
