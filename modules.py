@@ -212,9 +212,13 @@ class OpenPorts(BaseModule):
                 self.scripts.install(cleandoc(f"""
                     ufw allow from 192.168.0.0/16 to any port {port}
                     ufw allow from fe80::/10 to any port {port}
+                    ufw allow from 172.17.0.0/16 to any port {port}
+                    ufw allow from fe80::42:0:0:0/80 to any port {port}
                 """), cleandoc(f"""
                     ufw delete allow from 192.168.0.0/16 to any port {port}
                     ufw delete allow from fe80::/10 to any port {port}
+                    ufw delete allow from 172.17.0.0/16 to any port {port}
+                    ufw delete allow from fe80::42:0:0:0/80 to any port {port}
                 """))
 
         if 'external' in firewall:
