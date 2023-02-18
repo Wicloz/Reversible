@@ -797,3 +797,10 @@ class MuninPlugins(BaseModule):
     def on_file_write(self, remote, local):
         if remote.parent == PurePath('/usr/share/munin/plugins/'):
             self.scripts.trigger('systemctl try-restart munin-node', False)
+
+
+class BorgCacheDir(BaseModule):
+    def _parse_debian_yml_1(self, _, cachedirs):
+        for item in cachedirs:
+            with self.write(Path(item) / 'CACHEDIR.TAG', False) as fp:
+                fp.write('Signature: 8a477f597d28d172789f06886806bc55')

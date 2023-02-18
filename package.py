@@ -30,6 +30,7 @@ class Package:
         WebSites,
         ApplyPatches,
         MuninPlugins,
+        BorgCacheDir,
     ]
     LOADER = YAML(typ='unsafe').load
 
