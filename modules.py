@@ -697,7 +697,7 @@ class DockerContainers(BaseModule):
 
             if 'ports' in container:
                 for definition in container['ports']:
-                    setup += f' --publish "{definition}"'
+                    setup += f' --publish "{definition}/tcp" --publish "{definition}/udp"'
 
             setup += ' --name "' + container['name'] + '"'
             setup += ' --detach "' + container['image'] + '"'
@@ -720,9 +720,9 @@ class DockerContainers(BaseModule):
                     [Unit]
                     Description=rebuild of "{name}" Docker container
                     [Timer]
-                    OnCalendar=*-*-* 05:00:00
+                    OnCalendar=*-*-* 04:00:00
                     Persistent=true
-                    RandomizedDelaySec=60m
+                    RandomizedDelaySec=1h
                     [Install]
                     WantedBy=timers.target
                 """.format(**container)))
