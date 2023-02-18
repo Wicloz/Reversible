@@ -803,4 +803,8 @@ class BorgCacheDir(BaseModule):
     def _parse_debian_yml_1(self, _, cachedirs):
         for item in cachedirs:
             with self.write(Path(item) / 'CACHEDIR.TAG', False) as fp:
-                fp.write('Signature: 8a477f597d28d172789f06886806bc55')
+                fp.write(cleandoc(f"""
+                    Signature: 8a477f597d28d172789f06886806bc55
+                    # This file is a cache directory tag managed by '{self.source.name}'
+                    # For more information see: https://bford.info/cachedir/
+                """))
