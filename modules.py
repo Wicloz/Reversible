@@ -624,9 +624,9 @@ class SystemUsers(BaseModule):
 
             self.scripts.install(
                 'adduser --system --group {name} --home "{home}"'.format(**user),
-                'deluser {name}'.format(**user),
-                'before',
+                False, 'before',
             )
+            self.scripts.purge('deluser {name}'.format(**user))
 
             if user['home'] != '/dev/null':
                 self.scripts.purge('rm -r "{home}"'.format(**user))
