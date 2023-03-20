@@ -52,16 +52,12 @@ class ModuleScripts:
             if undo:
                 scripts['prerm'].append(undo)
 
-    def remove(self, script, undo, when='before', late=False):
+    def remove(self, script, when='before', late=False):
         scripts = self.scripts_late if late else self.scripts_early
         if when == 'before':
             scripts['prerm'].append(script)
-            if undo:
-                scripts['postinst'].append(undo)
         if when == 'after':
             scripts['postrm'].append(script)
-            if undo:
-                scripts['preinst'].append(undo)
 
 
 class BaseModule(ABC):
@@ -164,7 +160,7 @@ class SecureFiles(BaseModule):
                 self.scripts.install(cleandoc(f"""
                     chmod -077 "{path}"
                     chown {user}:{user} "{path}"
-                """), False, 'after')
+                """), False, when='after')
 
 
 class CopyFiles(BaseModule):
@@ -236,7 +232,7 @@ class PackageManagers(BaseModule):
 
         self.scripts.install(
             f'systemctl start {self.source.name}.service',
-            False, 'after',
+            False, when='after',
         )
 
         self.control['pre-depends'] = []
@@ -299,7 +295,7 @@ class OpenPorts(BaseModule):
                             [code.format(1901) for code in action],
                             ['ufw delete allow from 192.168.68.1 to any port 1901'],
                         )) for action in (enable, disable)
-                    ], 'before')
+                    ], when='before')
 
 
 class DNS(BaseModule):
@@ -432,7 +428,7 @@ class SharedFolders(BaseModule):
             chown {owner}:{owner} "{folder}"
         """), cleandoc(f"""
             rmdir -p "{folder}"
-        """), 'before')
+        """), when='before')
 
         self.scripts.purge(cleandoc(f"""
             if [ -e "{folder}" ]; then
@@ -539,7 +535,7 @@ class SystemdUnits0(BaseModule):
                 systemctl reset-failed "{unit}"
             fi
             systemctl disable "{unit}"
-        """), 'after', True)
+        """), when='after', late=True)
 
 
 class SystemdUnits1(SystemdUnits0):
@@ -673,7 +669,7 @@ class SystemUsers(BaseModule):
 
             self.scripts.install(
                 'adduser --system --group {name} --home "{home}"'.format(**user),
-                False, 'before',
+                False, when='before',
             )
             self.scripts.purge('deluser {name}'.format(**user))
 
@@ -689,7 +685,7 @@ class AutoDiversions(BaseModule):
             fi
         """), cleandoc(f"""
             dpkg-divert --quiet --rename --divert "{remote}.ucf-dist" --remove "{remote}"
-        """), 'before')
+        """), when='before')
 
 
 class ApplyPatches(BaseModule):
@@ -702,11 +698,11 @@ class ApplyPatches(BaseModule):
                 cp -a "{original}.ucf-dist" "{original}"
                 patch --forward "{original}" "{remote}"
                 take-control-of "{self.source.name}" "{original}"
-            """), False, 'after')
+            """), False, when='after')
 
             self.scripts.remove(
                 f'dpkg-divert --rename --divert "{original}.ucf-dist" --remove "{original}"',
-                False, 'after',
+                when='after',
             )
 
 
@@ -762,7 +758,7 @@ class DockerContainers(BaseModule):
 
             if 'volumes' in container:
                 self.scripts.purge(purge)
-            self.scripts.install(setup, remove, 'after')
+            self.scripts.install(setup, remove, when='after')
 
             with self.write('/lib/systemd/system/docker-' + container['name'] + '-rebuild.timer', False) as fp:
                 fp.write(cleandoc("""
@@ -813,7 +809,7 @@ class GitRepo(BaseModule):
             sudo -u {user} git fetch
             sudo -u {user} git checkout "{branch}"
             sudo -u {user} git submodule update --init --recursive
-        """), f'remove-managed-repo "{path.parent}"', 'before', True)
+        """), f'remove-managed-repo "{path.parent}"', when='before', late=True)
         self.scripts.purge(f'rm -r "{path.parent}"')
 
         with self.write(f'/lib/systemd/system/{slug}.timer', False) as fp:
@@ -839,7 +835,7 @@ class GitRepo(BaseModule):
                 ExecStart=/usr/sbin/update-managed-repo
             """))
 
-        self.scripts.install(f'systemctl start {slug}.service', False, 'after')
+        self.scripts.install(f'systemctl start {slug}.service', False, when='after')
 
 
 class MuninPlugins(BaseModule):
