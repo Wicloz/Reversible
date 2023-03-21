@@ -871,20 +871,20 @@ class UserScripts(BaseModule):
 
         if (source / 'preinst.sh').exists():
             with open(source / 'preinst.sh', 'r') as fp:
-                self.scripts.install(fp.read(), False, when='before')
+                self.scripts.install(fp.read().strip(), when='before')
 
         if (source / 'postinst.sh').exists():
             with open(source / 'postinst.sh', 'r') as fp:
-                self.scripts.install(fp.read(), False, when='after')
+                self.scripts.install(fp.read().strip(), when='after')
 
         if (source / 'prerm.sh').exists():
             with open(source / 'prerm.sh', 'r') as fp:
-                self.scripts.remove(fp.read(), when='before')
+                self.scripts.remove(fp.read().strip(), when='before')
 
         if (source / 'postrm.sh').exists():
             with open(source / 'postrm.sh', 'r') as fp:
-                self.scripts.remove(fp.read(), when='after')
+                self.scripts.remove(fp.read().strip(), when='after')
 
         if (source / 'purge.sh').exists():
             with open(source / 'purge.sh', 'r') as fp:
-                self.scripts.purge(fp.read())
+                self.scripts.purge(fp.read().strip())
