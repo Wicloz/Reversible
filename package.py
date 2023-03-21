@@ -132,7 +132,9 @@ class Package:
                     fp.write(key.title() + ': ' + ', '.join(values) + '\n')
 
             # combine module script trackers
-            scripts = sum(module.scripts for module in modules)
+            scripts = ModuleScripts()
+            for module in modules:
+                scripts += module.scripts
 
             # write actual package scripts
             for phase in ('preinst', 'postinst', 'prerm', 'postrm'):
