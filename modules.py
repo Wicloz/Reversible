@@ -16,48 +16,60 @@ import json
 
 class ModuleScripts:
     def __init__(self):
-        self.scripts_early = {
+        self.stages = {
             'preinst': [],
             'postinst': [],
             'prerm': [],
             'postrm': [],
         }
-        self.scripts_late = {
-            'preinst': [],
-            'postinst': [],
-            'prerm': [],
-            'postrm': [],
-        }
-        self.triggers_early = []
-        self.triggers_late = []
+        self.prepares = []
+        self.triggers = []
         self.purges = []
 
-    def trigger(self, script, internal):
-        if internal:
-            self.triggers_early.append(script)
-        else:
-            self.triggers_late.append(script)
+    def __add__(self, other):
+        result = ModuleScripts()
+
+        for mode in ('preinst', 'postinst', 'prerm', 'postrm'):
+            result.stages[mode] += self.stages[mode]
+            result.stages[mode] += other.stages[mode]
+
+        result.purges += self.purges
+        result.purges += other.purges
+
+        for script in chain(self.prepares, other.prepares):
+            if script not in result.prepares:
+                result.prepares.append(script)
+
+        for script in chain(self.triggers, other.triggers):
+            if script not in result.triggers:
+                result.triggers.append(script)
+
+        return result
+
+    def prepare(self, script):
+        self.prepares.append(script)
+
+    def trigger(self, script):
+        self.triggers.append(script)
 
     def purge(self, script):
         self.purges.append(script)
 
-    def install(self, script, undo, when='before', late=False):
-        scripts = self.scripts_late if late else self.scripts_early
+    def install(self, script, undo=None, *_, when='before'):
         if when == 'before':
-            scripts['preinst'].append(script)
+            self.stages['preinst'].append(script)
             if undo:
-                scripts['postrm'].append(undo)
+                self.stages['postrm'].append(undo)
         if when == 'after':
-            scripts['postinst'].append(script)
+            self.stages['postinst'].append(script)
             if undo:
-                scripts['prerm'].append(undo)
+                self.stages['prerm'].append(undo)
 
-    def remove(self, script, when='before', late=False):
-        scripts = self.scripts_late if late else self.scripts_early
+    def remove(self, script, *_, when='before'):
         if when == 'before':
-            scripts['prerm'].append(script)
+            self.stages['prerm'].append(script)
         if when == 'after':
-            scripts['postrm'].append(script)
+            self.stages['postrm'].append(script)
 
 
 class BaseModule(ABC):
@@ -124,9 +136,7 @@ class BaseModule(ABC):
                 yield fp
 
     def systemd_reload(self, unit):
-        self.scripts.trigger(
-            f'systemctl try-reload-or-restart {unit}', False,
-        )
+        self.scripts.trigger(f'systemctl try-reload-or-restart {unit}')
 
     @staticmethod
     def token(size):
@@ -301,7 +311,7 @@ class OpenPorts(BaseModule):
 class DNS(BaseModule):
     def on_file_write(self, path, _):
         if path.parent in {PurePath('/etc/nginx/sites-enabled/'), PurePath('/etc/cloudflare/records/')}:
-            self.scripts.trigger('systemctl restart ddns.service', False)
+            self.scripts.trigger('systemctl restart ddns.service')
 
     def _parse_debian_yml_1(self, _, cloudflare):
         with self.write(f'/etc/cloudflare/records/{self.source.name}.json', False) as fp:
@@ -535,13 +545,13 @@ class SystemdUnits0(BaseModule):
                 systemctl reset-failed "{unit}"
             fi
             systemctl disable "{unit}"
-        """), when='after', late=True)
+        """), when='after')
 
 
 class SystemdUnits1(SystemdUnits0):
     def on_file_write(self, remote, local):
         if remote.parent == PurePath('/lib/systemd/system/'):
-            self.scripts.trigger('systemctl daemon-reload', True)
+            self.scripts.prepare('systemctl daemon-reload')
 
             if local.exists():
                 with open(local, 'r') as fp:
@@ -809,7 +819,7 @@ class GitRepo(BaseModule):
             sudo -u {user} git fetch
             sudo -u {user} git checkout "{branch}"
             sudo -u {user} git submodule update --init --recursive
-        """), f'remove-managed-repo "{path.parent}"', when='before', late=True)
+        """), f'remove-managed-repo "{path.parent}"', when='before')
         self.scripts.purge(f'rm -r "{path.parent}"')
 
         with self.write(f'/lib/systemd/system/{slug}.timer', False) as fp:
@@ -841,7 +851,7 @@ class GitRepo(BaseModule):
 class MuninPlugins(BaseModule):
     def on_file_write(self, remote, local):
         if remote.parent == PurePath('/usr/share/munin/plugins/'):
-            self.scripts.trigger('systemctl try-restart munin-node', False)
+            self.scripts.trigger('systemctl try-restart munin-node')
 
 
 class BorgCacheDir(BaseModule):
@@ -853,3 +863,28 @@ class BorgCacheDir(BaseModule):
                     # This file is a cache directory tag managed by '{self.source.name}'
                     # For more information see: https://bford.info/cachedir/
                 """))
+
+
+class UserScripts(BaseModule):
+    def __init__(self, source, target):
+        super().__init__(source, target)
+
+        if (source / 'preinst.sh').exists():
+            with open(source / 'preinst.sh', 'r') as fp:
+                self.scripts.install(fp.read(), False, when='before')
+
+        if (source / 'postinst.sh').exists():
+            with open(source / 'postinst.sh', 'r') as fp:
+                self.scripts.install(fp.read(), False, when='after')
+
+        if (source / 'prerm.sh').exists():
+            with open(source / 'prerm.sh', 'r') as fp:
+                self.scripts.remove(fp.read(), when='before')
+
+        if (source / 'postrm.sh').exists():
+            with open(source / 'postrm.sh', 'r') as fp:
+                self.scripts.remove(fp.read(), when='after')
+
+        if (source / 'purge.sh').exists():
+            with open(source / 'purge.sh', 'r') as fp:
+                self.scripts.purge(fp.read())

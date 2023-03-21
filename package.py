@@ -4,7 +4,6 @@ from tempfile import TemporaryDirectory
 from os import readlink, remove
 from subprocess import run
 from ruamel.yaml import YAML
-import re
 from inspect import cleandoc
 
 
@@ -14,7 +13,6 @@ class Package:
         CopyFiles,
         SecureFiles,
         DockerContainers,
-        GitRepo,
         Triggers,
         CompressGzip,
         AutoDiversions,
@@ -25,12 +23,14 @@ class Package:
         ReverseProxy,
         SharedFolders,
         AptSources,
-        SystemdUnits1, SystemdUnits2,
         ManageDBs,
         WebSites,
         ApplyPatches,
         MuninPlugins,
         BorgCacheDir,
+        UserScripts,
+        GitRepo,
+        SystemdUnits1, SystemdUnits2,
     ]
     LOADER = YAML(typ='unsafe').load
 
@@ -131,54 +131,22 @@ class Package:
                 for key, values in combined.items():
                     fp.write(key.title() + ': ' + ', '.join(values) + '\n')
 
-            # load package script files
-            files = {
-                'purge': '',
-                'preinst': '',
-                'postinst': '',
-                'prerm': '',
-                'postrm': '',
-            }
-            for phase in files.keys():
-                location = self.package / (phase + '.sh')
-                if location.exists():
-                    with open(location, 'r') as fp:
-                        files[phase] = re.sub('[\n\r]+', '\n', fp.read().strip())
-
-            # merge purge phase content
-            purges = []
-            for module in modules:
-                purges += module.scripts.purges
-            if files['purge']:
-                purges.append(files['purge'])
-
-            # merge and deduplicate triggers
-            triggers_early = []
-            triggers_late = []
-            for module in modules:
-                for trigger in module.scripts.triggers_early:
-                    if trigger not in triggers_early:
-                        triggers_early.append(trigger)
-                for trigger in module.scripts.triggers_late:
-                    if trigger not in triggers_late:
-                        triggers_late.append(trigger)
+            # combine module script trackers
+            scripts = sum(module.scripts for module in modules)
 
             # write actual package scripts
             for phase in ('preinst', 'postinst', 'prerm', 'postrm'):
                 content = []
 
                 if phase in {'postinst', 'postrm'}:
-                    content += triggers_early
-                for module in modules:
-                    content += module.scripts.scripts_early[phase]
-                if files[phase]:
-                    content.append(files[phase])
-                for module in modules:
-                    content += module.scripts.scripts_late[phase]
-                if phase in {'postinst', 'postrm'}:
-                    content += triggers_late
+                    content += scripts.prepares
 
-                if content or (phase == 'postrm' and purges):
+                content += scripts.stages[phase]
+
+                if phase in {'postinst', 'postrm'}:
+                    content += scripts.triggers
+
+                if content or (phase == 'postrm' and scripts.purges):
                     with open(temp / 'DEBIAN' / phase, 'w') as fp:
                         fp.write('#!/bin/bash')
                         if phase in {'preinst', 'prerm'}:
@@ -186,7 +154,7 @@ class Package:
                         if phase == 'postrm':
                             fp.write('\n\nif [[ "$1" == "purge" ]]; then')
                             fp.writelines((
-                                '\n\n(\n' + item + '\n)' for item in purges
+                                '\n\n(\n' + item + '\n)' for item in scripts.purges
                             ))
                             fp.write('\n\nexit 0; fi')
                         fp.writelines((
