@@ -151,7 +151,7 @@ class ControlFile(BaseModule):
             'description': [description],
             'architecture': ['all'],
             'maintainer': ['Wilco de Boer <deboer.wilco@gmail.com>'],
-            'section': ['scramjet'],
+            'section': ['wicloz'],
         }
 
         if apt is not None:
