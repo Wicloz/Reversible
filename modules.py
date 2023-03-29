@@ -726,6 +726,11 @@ class DockerContainers(BaseModule):
                 dockerfile = PurePath(container['build'])
                 image = container['image'] = slugify(str(dockerfile))
                 build = f'docker build --tag "{image}" --file "{dockerfile}" "{dockerfile.parent}"'
+
+                if 'arguments' in container:
+                    for key, value in container['arguments'].items():
+                        build += f' --build-arg "{key}={value}"'
+
                 setup = build + '\n' + setup
 
             container.setdefault('sockets', False)
