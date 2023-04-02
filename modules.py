@@ -143,6 +143,23 @@ class BaseModule(ABC):
         alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
         return ''.join(choice(alphabet) for _ in range(size))
 
+    @staticmethod
+    def snippet(name, *args):
+        tag = BaseModule.token(10)
+        text = ''
+
+        text += f'{tag}=`cat << {tag}\n'
+
+        with open(Path(__file__).parent / 'scripts' / (name + '.py'), 'r') as fp:
+            text += fp.read().strip() + '\n'
+
+        text += f'{tag}`\n'
+        text += f'python3 -c "${tag}"'
+        for arg in args:
+            text += f' "{arg}"'
+
+        return text
+
 
 class ControlFile(BaseModule):
     def _parse_debian_yml_1(self, _, description, apt, depreciates):
