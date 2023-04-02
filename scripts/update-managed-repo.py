@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
-from git import Repo
 from os.path import isfile
 from subprocess import run
+
+run(('pip', 'install', '--upgrade', 'gitpython'))
+from git import Repo
 
 
 def run_extra_script(at):

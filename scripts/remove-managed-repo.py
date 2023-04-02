@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 from sys import argv
-from git import Repo, InvalidGitRepositoryError
+from subprocess import run
 from os import unlink, rmdir, listdir
 from os.path import isfile, join, islink, isdir
 from shutil import rmtree
+
+run(('pip', 'install', '--upgrade', 'gitpython'))
+from git import Repo, InvalidGitRepositoryError
 
 
 def recursive_tree_delete(node):
