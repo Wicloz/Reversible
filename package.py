@@ -31,6 +31,7 @@ class Package:
         UserScripts,
         GitRepo,
         SystemdUnits1, SystemdUnits2,
+        ClaimFiles,
     ]
     LOADER = YAML(typ='unsafe').load
 

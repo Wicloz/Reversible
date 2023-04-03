@@ -920,3 +920,12 @@ class UserScripts(BaseModule):
         if (source / 'purge.sh').exists():
             with open(source / 'purge.sh', 'r') as fp:
                 self.scripts.purge(fp.read().strip())
+
+
+class ClaimFiles(BaseModule):
+    def _parse_debian_yml_1(self, _, claims):
+        for claim in claims:
+            self.scripts.install(
+                self.snippet_inline('take-control-of.py', self.source.name, claim),
+                False, when='after',
+            )
