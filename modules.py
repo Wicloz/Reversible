@@ -143,14 +143,24 @@ class BaseModule(ABC):
         alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
         return ''.join(choice(alphabet) for _ in range(size))
 
-    @staticmethod
-    def snippet(name, *args):
-        tag = BaseModule.token(10)
+    def snippet_file(self, script, *args):
+        local = Path(__file__).parent / 'scripts' / script
+        remote = PurePath('/usr/bin/') / self.token(20)
+
+        with open(local, 'rb') as fp1:
+            with self.prepare(remote, 0o755) as path:
+                with open(path, 'wb') as fp2:
+                    copyfileobj(fp1, fp2)
+
+        return str(remote) + ''.join(f' "{arg}"' for arg in args)
+
+    def snippet_inline(self, script, *args):
+        tag = self.token(20)
         text = ''
 
         text += f'{tag}=`cat << {tag}\n'
 
-        with open(Path(__file__).parent / 'scripts' / (name + '.py'), 'r') as fp:
+        with open(Path(__file__).parent / 'scripts' / script, 'r') as fp:
             text += fp.read().strip() + '\n'
 
         text += f'{tag}`\n'
