@@ -734,8 +734,11 @@ class ApplyPatches(BaseModule):
                 dpkg-divert --rename --divert "{original}.ucf-dist" --add "{original}"
                 cp -a "{original}.ucf-dist" "{original}"
                 patch --forward "{original}" "{remote}"
-                take-control-of "{self.source.name}" "{original}"
             """), False, when='after')
+            self.scripts.install(
+                self.snippet_inline('take-control-of.py', self.source.name, original),
+                False, when='after',
+            )
 
             self.scripts.remove(
                 f'dpkg-divert --rename --divert "{original}.ucf-dist" --remove "{original}"',
@@ -851,7 +854,7 @@ class GitRepo(BaseModule):
             sudo -u {user} git fetch
             sudo -u {user} git checkout "{branch}"
             sudo -u {user} git submodule update --init --recursive
-        """), f'remove-managed-repo "{path.parent}"', when='before')
+        """), self.snippet_inline('remove-managed-repo.py', path.parent), when='before')
         self.scripts.purge(f'rm -r "{path.parent}"')
 
         with self.write(f'/lib/systemd/system/{slug}.timer', False) as fp:
@@ -874,8 +877,8 @@ class GitRepo(BaseModule):
                 Type=oneshot
                 User={user}
                 WorkingDirectory={path.parent}
-                ExecStart=/usr/sbin/update-managed-repo
             """))
+            fp.write('\n' + 'ExecStart=' + self.snippet_file('update-managed-repo.py'))
 
         self.scripts.install(f'systemctl start {slug}.service', False, when='after')
 
