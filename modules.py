@@ -763,11 +763,6 @@ class DockerContainers(BaseModule):
 
                 setup = build + '\n' + setup
 
-            container.setdefault('sockets', False)
-            if container['sockets']:
-                setup += ' --volume /run/mysqld/mysqld.sock:/run/mariadb.sock'
-                setup += ' --volume /run/redis/redis-server.sock:/run/redis.sock'
-
             if 'mounts' in container:
                 for definition in container['mounts']:
                     setup += f' --volume "{definition}"'
