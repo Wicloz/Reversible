@@ -763,6 +763,11 @@ class DockerContainers(BaseModule):
 
                 setup = build + '\n' + setup
 
+            container.setdefault('sockets', False)
+            if container['sockets']:
+                setup += ' --volume /run/mysqld/mysqld.sock:/run/mariadb.sock'
+                setup += ' --volume /run/redis/redis-server.sock:/run/redis.sock'
+
             if 'mounts' in container:
                 for definition in container['mounts']:
                     setup += f' --volume "{definition}"'
@@ -783,10 +788,6 @@ class DockerContainers(BaseModule):
             if 'ports' in container:
                 for definition in container['ports']:
                     setup += f' --publish "{definition}/tcp" --publish "{definition}/udp"'
-
-            if 'hosts' in container:
-                for definition in container['hosts']:
-                    setup += f' --add-host "{definition}"'
 
             setup += ' --name "' + container['name'] + '"'
             setup += ' --detach "' + container['image'] + '"'
