@@ -784,6 +784,10 @@ class DockerContainers(BaseModule):
                 for definition in container['ports']:
                     setup += f' --publish "{definition}/tcp" --publish "{definition}/udp"'
 
+            if 'hosts' in container:
+                for definition in container['hosts']:
+                    setup += f' --add-host "{definition}"'
+
             setup += ' --name "' + container['name'] + '"'
             setup += ' --detach "' + container['image'] + '"'
 
