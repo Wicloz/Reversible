@@ -12,7 +12,6 @@ class Package:
         ControlFile,
         CopyFiles,
         SecureFiles,
-        DockerContainers,
         Triggers,
         CompressGzip,
         AutoDiversions,
@@ -31,6 +30,7 @@ class Package:
         UserScripts,
         GitRepo,
         SystemdUnits1, SystemdUnits2,
+        DockerContainers,
         ClaimFiles,
     ]
     LOADER = YAML(typ='unsafe').load
