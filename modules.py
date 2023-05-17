@@ -155,7 +155,7 @@ class BaseModule(ABC):
         return str(remote) + ''.join(f' "{arg}"' for arg in args)
 
     def snippet_inline(self, script, *args):
-        tag = self.token(20)
+        tag = '_' + self.token(20)
         text = ''
 
         text += f'{tag}=`cat << {tag}\n'
