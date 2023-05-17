@@ -804,6 +804,9 @@ class DockerContainers(BaseModule):
                 self.scripts.purge(purge)
             self.scripts.install(setup, remove, when='after')
 
+            if 'rebuild' in container and not container['rebuild']:
+                continue
+
             with self.write('/lib/systemd/system/docker-' + container['name'] + '-rebuild.timer', False) as fp:
                 fp.write(cleandoc("""
                     [Unit]
