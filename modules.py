@@ -788,6 +788,9 @@ class DockerContainers(BaseModule):
                 for definition in container['hosts']:
                     setup += f' --add-host "{definition}"'
 
+            if 'user' in container:
+                setup += ' --user "' + container['user'] + '"'
+
             setup += ' --name "' + container['name'] + '"'
             setup += ' --detach "' + container['image'] + '"'
 
