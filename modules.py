@@ -830,9 +830,9 @@ class DockerContainers(BaseModule):
                     Type=oneshot
                 """.format(**container)) + '\n')
                 for command in remove.split('\n'):
-                    fp.write('ExecStartPre=/usr/bin/' + command + '\n')
+                    fp.write("ExecStartPre=/bin/bash -c '" + command + "'\n")
                 for command in setup.split('\n'):
-                    fp.write('ExecStart=/usr/bin/' + command + '\n')
+                    fp.write("ExecStart=/bin/bash -c '" + command + "'\n")
 
 
 class GitRepo(BaseModule):
