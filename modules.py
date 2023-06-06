@@ -315,12 +315,12 @@ class OpenPorts(BaseModule):
             with self.write(f'/etc/cron.d/{self.source.name}', False) as fp:
                 for port in firewall['external']:
                     enable = (
-                        f'upnpc -z {{}} -a 192.168.68.105 {port} {port} tcp || true',
-                        f'upnpc -z {{}} -a 192.168.68.105 {port} {port} udp || true',
+                        f'upnpc -i -z {{}} -a 192.168.68.105 {port} {port} tcp || true',
+                        f'upnpc -i -z {{}} -a 192.168.68.105 {port} {port} udp || true',
                     )
                     disable = (
-                        f'upnpc -z {{}} -d {port} tcp || true',
-                        f'upnpc -z {{}} -d {port} udp || true',
+                        f'upnpc -i -z {{}} -d {port} tcp || true',
+                        f'upnpc -i -z {{}} -d {port} udp || true',
                     )
 
                     for code in enable:
