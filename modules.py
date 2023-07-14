@@ -815,7 +815,7 @@ class DockerContainers(BaseModule):
                     [Unit]
                     Description=rebuild of "{name}" Docker container
                     [Timer]
-                    OnCalendar=*-*-* 04:00:00
+                    OnCalendar=*-*-* 06:00:00
                     Persistent=true
                     RandomizedDelaySec=1h
                     [Install]
