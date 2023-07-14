@@ -428,7 +428,7 @@ class ReverseProxy(BaseModule):
                     if 'expires' in proxy:
                         fp.write('        expires ' + proxy['expires'] + ';\n')
                     fp.write('        root "' + proxy['root'] + '";\n')
-                    fp.write('        try_files $uri $uri/ @proxy;\n')
+                    fp.write('        try_files $uri @proxy;\n')
                     fp.write('    }\n')
                     fp.write('\n')
 
