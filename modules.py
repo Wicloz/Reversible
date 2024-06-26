@@ -794,6 +794,9 @@ class DockerContainers(BaseModule):
             setup += ' --name "' + container['name'] + '"'
             setup += ' --detach "' + container['image'] + '"'
 
+            if 'process' in container:
+                setup += ' ' + container['process']
+
             if 'commands' in container:
                 for command in container['commands']:
                     setup += '\ndocker exec "' + container['name'] + '" ' + command
