@@ -702,14 +702,27 @@ class CompressGzip(BaseModule):
 class SystemUsers(BaseModule):
     def _parse_debian_yml_1(self, _, users):
         for user in users:
-            user.setdefault('home', '/dev/null')
+            user.setdefault('system', True)
 
-            self.scripts.install(
-                'adduser --system --group {name} --home "{home}"'.format(**user),
-                False, when='before',
-            )
+            user['uid_gid_args'] = ''
+            if 'uid' in user:
+                user['uid_gid_args'] = '--uid {uid}'.format(**user)
+
+            if user['system']:
+                user.setdefault('home', '/dev/null')
+                self.scripts.install(
+                    'adduser {name} {uid_gid_args} --home "{home}" --system --group'.format(**user),
+                    False, when='before',
+                )
+
+            if not user['system']:
+                user.setdefault('home', '/home/{name}/'.format(**user))
+                self.scripts.install(
+                    'adduser {name} {uid_gid_args} --home "{home}" --disabled-password --gecos ""'.format(**user),
+                    False, when='before',
+                )
+
             self.scripts.purge('deluser {name}'.format(**user))
-
             if user['home'] != '/dev/null':
                 self.scripts.purge('rm -r "{home}"'.format(**user))
 
