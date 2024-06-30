@@ -710,17 +710,19 @@ class SystemUsers(BaseModule):
 
             if user['system']:
                 user.setdefault('home', '/dev/null')
-                self.scripts.install(
-                    'adduser {name} {uid_gid_args} --home "{home}" --system --group'.format(**user),
-                    False, when='before',
-                )
+                self.scripts.install(cleandoc("""
+                    if ! id {name} &> /dev/null; then
+                        adduser {name} {uid_gid_args} --home "{home}" --system --group
+                    fi
+                """).format(**user), False, when='before')
 
             if not user['system']:
                 user.setdefault('home', '/home/{name}/'.format(**user))
-                self.scripts.install(
-                    'adduser {name} {uid_gid_args} --home "{home}" --disabled-password --gecos ""'.format(**user),
-                    False, when='before',
-                )
+                self.scripts.install(cleandoc("""
+                    if ! id {name} &> /dev/null; then
+                        adduser {name} {uid_gid_args} --home "{home}" --disabled-password --gecos ""
+                    fi
+                """).format(**user), False, when='before')
 
             self.scripts.purge('deluser {name}'.format(**user))
             if user['home'] != '/dev/null':
