@@ -740,6 +740,16 @@ class AutoDiversions(BaseModule):
         """), when='before')
 
 
+class MyDiversions(BaseModule):
+    def _parse_debian_yml_1(self, _, diversions):
+        for diversion in diversions:
+            self.scripts.install(cleandoc(f"""
+                dpkg-divert --rename --divert "{diversion}.ucf-dist" --add "{diversion}"
+            """), cleandoc(f"""
+                dpkg-divert --rename --divert "{diversion}.ucf-dist" --remove "{diversion}"
+            """), when='before')
+
+
 class ApplyPatches(BaseModule):
     def on_file_write(self, remote, local):
         if remote.suffix == '.patch':

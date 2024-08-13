@@ -15,6 +15,7 @@ class Package:
         Triggers,
         CompressGzip,
         AutoDiversions,
+        MyDiversions,
         SystemUsers,
         PackageManagers,
         OpenPorts,
