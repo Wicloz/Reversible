@@ -855,6 +855,7 @@ class DockerContainers(BaseModule):
             if 'user' in container:
                 setup += ' --user "' + container['user'] + '"'
 
+            setup += ' --pull ' + ('never' if 'build' in container else 'always')
             setup += ' --name "' + container['name'] + '"'
             setup += ' --detach "' + container['image'] + '"'
 
