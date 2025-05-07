@@ -19,6 +19,7 @@ class Package:
         SystemUsers,
         PackageManagers,
         OpenPorts,
+        Certificates,
         DNS,
         ReverseProxy,
         SharedFolders,

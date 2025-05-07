@@ -345,6 +345,45 @@ class DNS(BaseModule):
             json.dump(cloudflare, fp)
 
 
+class Certificates(BaseModule):
+    def on_file_write(self, remote, local):
+        if remote.parent != PurePath('/etc/nginx/sites-enabled/'):
+            return
+
+        domains = []
+        with open(local, 'r') as fp:
+            for line in fp:
+                line = line.strip()
+                if line.endswith(';'):
+                    directive, *arguments = line.rstrip(';').split()
+                    if directive == 'server_name':
+                        domains += arguments
+
+        if not domains:
+            return
+
+        command = f'certbot certonly --cert-name "{remote.stem}"'
+        for domain in domains:
+            command += f' --domain "{domain}"'
+
+        self.scripts.install(cleandoc(f"""
+            if [[ ! -d "/etc/letsencrypt/live/{remote.stem}/" ]]; then
+                {command}
+            fi
+        """))
+        self.scripts.purge(f'certbot revoke --delete --cert-name "{remote.stem}"')
+
+        self.scripts.install(cleandoc(f"""
+            if [[ ! -f "/etc/letsencrypt/live/{remote.stem}/dhparams.pem" ]]; then
+                openssl dhparam -out "/etc/letsencrypt/live/{remote.stem}/dhparams.pem" 2048
+            fi
+        """))
+        self.scripts.purge(cleandoc(f"""
+            rm "/etc/letsencrypt/live/{remote.stem}/dhparams.pem"
+            rmdir "/etc/letsencrypt/live/{remote.stem}/"
+        """))
+
+
 class ReverseProxy(BaseModule):
     def _parse_debian_yml_1(self, _, proxies):
         self.systemd_reload('nginx.service')
