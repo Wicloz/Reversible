@@ -434,6 +434,11 @@ class ReverseProxy(BaseModule):
                     fp.write('    access_log /dev/null;\n')
                 fp.write('\n')
 
+                fp.write('    ssl_certificate /etc/letsencrypt/live/' + proxy['name'] + '/fullchain.pem;\n')
+                fp.write('    ssl_certificate_key /etc/letsencrypt/live/' + proxy['name'] + '/privkey.pem;\n')
+                fp.write('    ssl_dhparam /etc/letsencrypt/live/' + proxy['name'] + '/dhparams.pem;\n')
+                fp.write('\n')
+
                 fp.write(f'    proxy_read_timeout {timeout};\n')
                 fp.write(f'    proxy_send_timeout {timeout};\n')
                 fp.write('\n')
