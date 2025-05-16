@@ -366,15 +366,11 @@ class Certificates(BaseModule):
         for domain in domains:
             command += f' --domain "{domain}"'
 
-        self.scripts.install(cleandoc(f"""
-            if [[ ! -d "/etc/letsencrypt/live/{remote.stem}/" ]]; then
-                {command}
-            fi
-        """))
+        self.scripts.install(command)
         self.scripts.purge(f'certbot revoke --delete --cert-name "{remote.stem}"')
 
         self.scripts.install(cleandoc(f"""
-            if [[ ! -f "/etc/letsencrypt/live/{remote.stem}/dhparams.pem" ]]; then
+            if [[ ! -e "/etc/letsencrypt/live/{remote.stem}/dhparams.pem" ]]; then
                 openssl dhparam -out "/etc/letsencrypt/live/{remote.stem}/dhparams.pem" 2048
             fi
         """))
