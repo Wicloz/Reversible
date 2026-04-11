@@ -400,8 +400,8 @@ class ReverseProxy(BaseModule):
             else:
                 timeout = '1h'
 
-            if proxy['cloudflare']:
             includes = ['listen', 'earlydata']
+            if proxy['cloudflare']:
                 includes.append('cloudflare')
             if proxy['restricted']:
                 includes.append('restricted')
