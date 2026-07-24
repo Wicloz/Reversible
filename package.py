@@ -51,9 +51,11 @@ class Package:
         for target in targets:
             run(('scp', self.package.parent / f'{self.package.name}.deb', f'{target}:/tmp/{self.package.name}.deb'))
             run(args=('ssh', target, 'bash -'), input=cleandoc(f"""
-                sudo DEBIAN_FRONTEND=noninteractive apt-get -yq update
-                sudo DEBIAN_FRONTEND=noninteractive apt-get -yq remove {self.package.name}
-                sudo DEBIAN_FRONTEND=noninteractive apt-get -yq install /tmp/{self.package.name}.deb
+                sudo -i
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get -yq update
+                apt-get -yq remove {self.package.name}
+                apt-get -yq install /tmp/{self.package.name}.deb
                 rm /tmp/{self.package.name}.deb
             """).encode('UTF8'))
 
