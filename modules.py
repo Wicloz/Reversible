@@ -240,43 +240,59 @@ class CopyFiles(BaseModule):
             file.symlink_to(content)
 
 
-class PackageManagers(BaseModule):
-    def _parse_debian_yml_1(self, _, pip, npm):
-        with self.write(f'/lib/systemd/system/{self.source.name}.timer', False) as fp:
-            fp.write(cleandoc(f"""
-                [Unit]
-                Description=update process for Python/Node packages of "{self.source.name}"
-                [Timer]
-                OnCalendar=daily
-                Persistent=true
-                RandomizedDelaySec=1h
-                [Install]
-                WantedBy=timers.target
-            """))
+class MaintainVenv(BaseModule):
+    def _parse_debian_yml_1(self, _, venv):
+        self.control['pre-depends'] = ['python3-venv']
 
-        with self.write(f'/lib/systemd/system/{self.source.name}.service', False) as fp:
-            fp.write(cleandoc(f"""
-                [Unit]
-                Description=update process for Python/Node packages of "{self.source.name}"
-                [Service]
-                Type=oneshot
-            """))
-            if pip is not None:
-                fp.write('\nExecStart=/usr/bin/pip3 install --upgrade ' + ' '.join(pip))
-            if npm is not None:
-                fp.write('\nExecStart=/usr/bin/npm install --global --production ' +
-                         ' '.join(item + '@latest' for item in npm))
+        for environment in venv:
+            path = PurePath(environment['path'])
+            slug = slugify(environment['path'])
 
-        self.scripts.install(
-            f'systemctl start {self.source.name}.service',
-            False, when='after',
-        )
+            modules = ''
+            if 'modules' in environment:
+                modules = ''.join(f' "{module}"' for module in environment['modules'])
 
-        self.control['pre-depends'] = []
-        if pip is not None:
-            self.control['pre-depends'].append('python3-pip')
-        if npm is not None:
-            self.control['pre-depends'].append('npm')
+            requirements = ''
+            if 'requirements' in environment:
+                requirements = ''.join(f' --requirements "{file}"' for file in environment['requirements'])
+
+            if 'user' in environment:
+                user = environment['user']
+                self.scripts.install(cleandoc(f"""
+                    mkdir -p "{path}"
+                    chown {user}:{user} "{path}"
+                    sudo -u {user} python3 -m venv "{path}"
+                    systemctl start "{slug}.service"
+                """), f'rm -rf "{path}"', when='after')
+
+            else:
+                self.scripts.install(cleandoc(f"""
+                    python3 -m venv "{path}"
+                    systemctl start "{slug}.service"
+                """), f'rm -rf "{path}"', when='after')
+
+            with self.write(f'/lib/systemd/system/{slug}.timer', False) as fp:
+                fp.write(cleandoc("""
+                    [Unit]
+                    Description=maintain Python venv located at "{path}"
+                    [Install]
+                    WantedBy=timers.target
+                    [Timer]
+                    OnCalendar=daily
+                    Persistent=true
+                    RandomizedDelaySec=1h
+                """.format(**environment)) + '\n')
+
+            with self.write(f'/lib/systemd/system/{slug}.service', False) as fp:
+                fp.write(cleandoc("""
+                    [Unit]
+                    Description=maintain Python venv located at "{path}"
+                    [Service]
+                    Type=oneshot
+                """.format(**environment)) + '\n')
+                if 'user' in environment:
+                    fp.write('User=' + environment['user'] + '\n')
+                fp.write(f'ExecStart={path}/bin/pip3 install --upgrade{modules}{requirements}\n')
 
 
 class OpenPorts(BaseModule):
@@ -906,7 +922,7 @@ class DockerContainers(BaseModule):
 
 class GitRepo(BaseModule):
     def _parse_git_yml_1(self, path, url, branch, user, pre, post):
-        self.control['pre-depends'] = ['git']
+        self.control['pre-depends'] = ['git-lfs', 'python3-git']
 
         if user is None:
             user = 'root'

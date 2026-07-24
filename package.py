@@ -17,7 +17,7 @@ class Package:
         AutoDiversions,
         MyDiversions,
         SystemUsers,
-        PackageManagers,
+        MaintainVenv,
         OpenPorts,
         Certificates,
         DNS,

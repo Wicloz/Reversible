@@ -2,8 +2,6 @@
 
 from os.path import isfile
 from subprocess import run
-
-run(('pip', 'install', '--upgrade', 'gitpython'))
 from git import Repo
 
 

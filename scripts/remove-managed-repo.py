@@ -5,8 +5,6 @@ from subprocess import run
 from os import unlink, rmdir, listdir
 from os.path import isfile, join, islink, isdir
 from shutil import rmtree
-
-run(('pip', 'install', '--upgrade', 'gitpython'))
 from git import Repo, InvalidGitRepositoryError
 
 
