@@ -49,7 +49,7 @@ class Package:
                     targets.append(line)
 
         for target in targets:
-            run(('scp', f'/tmp/{self.package.name}.deb', f'{target}:/tmp/{self.package.name}.deb'))
+            run(('scp', self.package.parent / f'{self.package.name}.deb', f'{target}:/tmp/{self.package.name}.deb'))
             run(args=('ssh', target, 'bash -'), input=cleandoc(f"""
                 sudo DEBIAN_FRONTEND=noninteractive apt-get -yq update
                 sudo DEBIAN_FRONTEND=noninteractive apt-get -yq remove {self.package.name}
@@ -57,7 +57,7 @@ class Package:
                 rm /tmp/{self.package.name}.deb
             """).encode('UTF8'))
 
-        remove(f'/tmp/{self.package.name}.deb')
+        remove(self.package.parent / f'{self.package.name}.deb')
 
     def build(self):
         with TemporaryDirectory() as temp:
@@ -169,7 +169,7 @@ class Package:
                     (temp / 'DEBIAN' / phase).chmod(0o755)
 
             # use dpkg to build .deb archive
-            run(('dpkg-deb', '--root-owner-group', '-Zxz', '--build', temp, '/tmp/' + self.package.name + '.deb'))
+            run(('dpkg-deb', '--root-owner-group', '-Zxz', '--build', temp, self.package.parent / f'{self.package.name}.deb'))
 
             # save new version after successful build
             with open(self.package / 'version', 'w') as fp:
