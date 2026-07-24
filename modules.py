@@ -847,7 +847,7 @@ class DockerContainers(BaseModule):
             if 'build' in container:
                 dockerfile = PurePath(container['build'])
                 image = container['image'] = slugify(str(dockerfile))
-                build = f'docker build --tag "{image}" --file "{dockerfile}" "{dockerfile.parent}"'
+                build = f'docker build --pull --tag "{image}" --file "{dockerfile}" "{dockerfile.parent}"'
 
                 if 'arguments' in container:
                     for key, value in container['arguments'].items():
