@@ -830,8 +830,19 @@ class ApplyPatches(BaseModule):
 class DockerContainers(BaseModule):
     def _parse_debian_yml_1(self, _, docker):
         for container in docker:
-            setup = 'docker run --restart unless-stopped --add-host host.docker.internal:host-gateway'
+            setup = 'docker run --add-host host.docker.internal:host-gateway'
+            remove = ''
             purge = 'docker volume rm'
+
+            if 'remove' in container and container['remove']:
+                setup += ' --rm'
+
+            else:
+                setup += ' --restart unless-stopped'
+                remove += cleandoc("""
+                    docker container inspect "{name}" &> /dev/null && docker container stop "{name}" || true
+                    docker container inspect "{name}" &> /dev/null && docker container rm --volumes "{name}" || true
+                """.format(**container))
 
             if 'build' in container:
                 dockerfile = PurePath(container['build'])
@@ -882,11 +893,6 @@ class DockerContainers(BaseModule):
             if 'commands' in container:
                 for command in container['commands']:
                     setup += '\ndocker exec "' + container['name'] + '" ' + command
-
-            remove = cleandoc("""
-                docker container stop "{name}"
-                docker container rm --volumes "{name}"
-            """.format(**container))
 
             if 'volumes' in container:
                 self.scripts.purge(purge)
