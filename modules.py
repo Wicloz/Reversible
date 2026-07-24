@@ -894,13 +894,14 @@ class DockerContainers(BaseModule):
 
             if 'rebuild' in container and not container['rebuild']:
                 continue
+            container.setdefault('rebuild', '*-*-* 06:00:00')
 
             with self.write('/lib/systemd/system/docker-' + container['name'] + '-rebuild.timer', False) as fp:
                 fp.write(cleandoc("""
                     [Unit]
                     Description=rebuild of "{name}" Docker container
                     [Timer]
-                    OnCalendar=*-*-* 06:00:00
+                    OnCalendar={rebuild}
                     Persistent=true
                     RandomizedDelaySec=1h
                     [Install]
