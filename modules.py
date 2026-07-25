@@ -451,8 +451,13 @@ class ReverseProxy(BaseModule):
                 fp.write('    ssl_dhparam /etc/letsencrypt/live/' + proxy['name'] + '/dhparams.pem;\n')
                 fp.write('\n')
 
-                fp.write(f'    proxy_read_timeout {timeout};\n')
-                fp.write(f'    proxy_send_timeout {timeout};\n')
+                # timeouts only apply to the transport actually in use
+                if 'php' in proxy:
+                    fp.write(f'    fastcgi_read_timeout {timeout};\n')
+                    fp.write(f'    fastcgi_send_timeout {timeout};\n')
+                else:
+                    fp.write(f'    proxy_read_timeout {timeout};\n')
+                    fp.write(f'    proxy_send_timeout {timeout};\n')
                 fp.write('\n')
 
                 for header in proxy['headers']:
@@ -469,7 +474,17 @@ class ReverseProxy(BaseModule):
                     fp.write('\n')
 
                 for static in proxy['static']:
-                    fp.write('    location ' + static['location'] + ' {\n')
+                    location = static['location']
+
+                    # an alias must line up with its location exactly, or a
+                    # prefix like `/skins` also maps `/skinsfoo` outside of it
+                    if 'alias' in static:
+                        if static['alias'].endswith('/'):
+                            location = location.rstrip('/') + '/'
+                        else:
+                            location = '= ' + location
+
+                    fp.write('    location ' + location + ' {\n')
                     if 'root' in static:
                         fp.write('        root "' + static['root'] + '";\n')
                     if 'alias' in static:
@@ -479,23 +494,67 @@ class ReverseProxy(BaseModule):
                     fp.write('    }\n')
                     fp.write('\n')
 
-                fp.write('    location / {\n')
+                def write_backend():
+                    if 'php' in proxy:
+                        fp.write('        include /etc/nginx/fastcgi_params;\n')
+                        fp.write('        fastcgi_param SCRIPT_FILENAME "' + proxy['php'] + '";\n')
+                        fp.write('        fastcgi_pass ' + proxy['address'] + ':' + str(proxy['port']) + ';\n')
+                    else:
+                        fp.write('        proxy_pass http://' + proxy['address'] + ':' + str(proxy['port']) + ';\n')
+
+                # files are only ever served from disk when a root is given
                 if 'root' in proxy:
+                    fp.write('    root "' + proxy['root'] + '";\n')
+                    fp.write('\n')
+
+                if 'root' in proxy or any('alias' in s or 'root' in s for s in proxy['static']):
+                    # never hand out dotfiles, apart from well-known URIs
+                    fp.write('    location ~ /\\.(?!well-known) {\n')
+                    fp.write('        return 404;\n')
+                    fp.write('    }\n')
+                    fp.write('\n')
+
+                if 'root' in proxy and 'php' in proxy:
+                    # front controller pattern: static files come off disk and
+                    # everything else is rewritten onto the single entrypoint
+                    front = '/' + PurePath(proxy['php']).name
+
+                    fp.write('    location / {\n')
                     if 'expires' in proxy:
                         fp.write('        expires ' + proxy['expires'] + ';\n')
-                    fp.write('        root "' + proxy['root'] + '";\n')
-                    fp.write('        try_files $uri $uri/ @proxy;\n')
+                    fp.write('        try_files $uri ' + front + '$is_args$args;\n')
+                    fp.write('    }\n')
+                    fp.write('\n')
+
+                    # no script besides the entrypoint may be reached, so that
+                    # stray files are neither executed nor served as source
+                    fp.write('    location ~ \\.php$ {\n')
+                    fp.write('        return 404;\n')
+                    fp.write('    }\n')
+                    fp.write('\n')
+
+                    fp.write('    location = ' + front + ' {\n')
+                    write_backend()
+                    fp.write('    }\n')
+
+                elif 'root' in proxy:
+                    # hand out static files and indices, but never a listing,
+                    # and let the application answer anything not on disk
+                    fp.write('    location / {\n')
+                    if 'expires' in proxy:
+                        fp.write('        expires ' + proxy['expires'] + ';\n')
+                    fp.write('        try_files $uri $uri/index.html @proxy;\n')
                     fp.write('    }\n')
                     fp.write('\n')
 
                     fp.write('    location @proxy {\n')
-                if 'php' in proxy:
-                    fp.write('        fastcgi_pass ' + proxy['address'] + ':' + str(proxy['port']) + ';\n')
-                    fp.write('        include /etc/nginx/fastcgi_params;\n')
-                    fp.write('        fastcgi_param SCRIPT_FILENAME "' + proxy['php'] + '";\n')
+                    write_backend()
+                    fp.write('    }\n')
+
                 else:
-                    fp.write('        proxy_pass http://' + proxy['address'] + ':' + str(proxy['port']) + ';\n')
-                fp.write('    }\n')
+                    fp.write('    location / {\n')
+                    write_backend()
+                    fp.write('    }\n')
 
                 # end of nginx file
                 fp.write('}\n')
